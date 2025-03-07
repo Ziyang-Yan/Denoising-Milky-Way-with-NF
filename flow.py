@@ -389,8 +389,8 @@ def sample_from_flow(flow,scaler,num_samples,batch_size):
     return scaler.inverse_transform(torch.cat(samples, dim=0))
 
 
-def load_and_gen_sample(path):
-    model_parameters = torch.load(os.path.join(path,'model_parameters.pth'))
+def load_and_gen_sample(model_path,data_path):
+    model_parameters = torch.load(os.path.join(model_path,'model_parameters.pth'))
 
     print(model_parameters['best_epoch'])
     print(model_parameters['best_loss'])
@@ -405,7 +405,7 @@ def load_and_gen_sample(path):
 
 
 
-    gaia_data, sector = select_stars(QTable.read('gdrive/MyDrive/Colab Notebooks/normalizing_flow_gaia/gaiadr3_rv.fits')
+    gaia_data, sector = select_stars(QTable.read(data_path)
                     ,model_parameters['sector']
                     )
 
