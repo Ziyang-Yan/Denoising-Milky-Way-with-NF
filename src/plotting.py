@@ -1,19 +1,12 @@
-import matplotlib as mpl
 from matplotlib import cm
 import matplotlib.pyplot as plt
-from matplotlib.animation import PillowWriter
-from matplotlib.animation import FuncAnimation, writers
 import numpy as np
-import copy
 import scipy
 import seaborn as sns
 import pandas as pd
 import os
-from pathlib import Path
 from pickle import TRUE
-from datetime import datetime
 from time import perf_counter as time
-import random
 import corner
 
 

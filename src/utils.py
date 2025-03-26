@@ -1,29 +1,14 @@
 from typing import *
-import matplotlib as mpl
 import numpy as np
-import copy
-import scipy
 from astropy import units as u
 from astropy.coordinates import (SkyCoord, Distance, Galactic)
 import astropy.coordinates as coord
-from astropy.io import fits
-from astropy.table import QTable
-from astropy.time import Time
 from astropy import uncertainty as unc
-import os
-from pathlib import Path
 from pickle import TRUE
-from datetime import datetime
-from time import perf_counter as time
 import torch
 from torch.utils.data import Dataset, DataLoader
-import sklearn.preprocessing
 from tqdm import *
-
-
 import random
-
-from .utils import load_and_gen_sample
 from .plotting import plot_his,plot_velocity,plot_velocity_z,plot_spiral,plot_1d,plot_corner_6d_large
 
 def select_stars(table , sector):
@@ -69,24 +54,30 @@ def make_mock_data(input_data,input_error,amp,training_fraction=0.7,seed=42):
     mock_data = np.array([np.random.normal(training_data[:,i], mock_error[:,i]) for i in range(6)]).T
     return mock_data, mock_error, test_data,training_data
 
-def sam_tran(data,error,N,seed= None):
+
+
+def sampling_function(data,error,N,seed= None):
     np.random.seed(seed)
     random.seed(seed)
+    # uncorelated guassian distribution
+    sample = np.stack([unc.normal(center= data[:,i], std=error[:,i], n_samples=N).distribution for i in range(6)],axis=2)
+    parallax_factor = np.ones_like(sample[:,:,2]).reshape(-1,1)
+    parallax_factor[sample[:,:,2].reshape(-1,1)<0] = 0
+    return sample, parallax_factor.reshape(sample[:,:,2].shape)
 
+def sam_tran(data,error,N,seed= None):
+    sample,parallax_factor = sampling_function(data,error,N,seed)
+    
     mas_per_yr = u.mas/u.yr
     km_per_s = u.km/u.s
 
-    parallax_sample = unc.normal(center= data[:,2], std=error[:,2], n_samples=N).distribution *u.mas
-    parallax_factor = np.ones_like(parallax_sample.value.reshape(-1,1))
-    parallax_factor[parallax_sample.value.reshape(-1,1)<0] = 0
-    parallax_factor = parallax_factor.reshape(parallax_sample.value.shape)
     stars_sample = SkyCoord(
-        ra = unc.normal(center= data[:,0], std=error[:,0], n_samples=N).distribution * u.degree,
-        dec = unc.normal(center= data[:,1], std=error[:,1], n_samples=N).distribution * u.degree,
-        distance = Distance(parallax = abs(parallax_sample)),
-        pm_ra_cosdec = unc.normal(center= data[:,3], std=error[:,3], n_samples=N).distribution * mas_per_yr,
-        pm_dec = unc.normal(center= data[:,4], std=error[:,4], n_samples=N).distribution * mas_per_yr,
-        radial_velocity = unc.normal(center= data[:,5], std=error[:,5], n_samples=N).distribution *km_per_s
+        ra = sample[:,:,0] * u.degree,
+        dec = sample[:,:,1] * u.degree,
+        distance = Distance(parallax = abs(center= sample[:,:,2]*u.mas)), # ensure positive parallax
+        pm_ra_cosdec = sample[:,:,3] * mas_per_yr,
+        pm_dec = sample[:,:,4] * mas_per_yr,
+        radial_velocity = sample[:,:,5] *km_per_s
     )
     stars_sample = stars_sample.transform_to(coord.builtin_frames.Galactocentric())
     stars_sample.representation_type = 'cylindrical'
@@ -101,7 +92,7 @@ def sam_tran(data,error,N,seed= None):
         'v_phi' : -(stars_sample.rho * stars_sample.d_phi).to(u.km/u.s, equivalencies = u.dimensionless_angles()).value,
         'v_z' : stars_sample.d_z.to(u.km/u.s).value
     }
-    return stars_data_cyl, parallax_factor,stars_sample
+    return stars_data_cyl,parallax_factor,stars_sample
 
 
 def selection_func(stars_sam,sam_max, sam_min = 1, sig_v = 1 ):
