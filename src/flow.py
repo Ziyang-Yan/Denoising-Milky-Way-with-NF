@@ -80,7 +80,7 @@ class RQS_Flow(zuko.flows.Flow):
 
 
 
-def pre_train_epoch(
+def pre_train_one_epoch(
     flow,
     optimizer,
     train_set,
@@ -126,7 +126,7 @@ def pre_train_epoch(
     return loss_epoch.item()
 
 
-def pre_train_epoch_test(
+def pre_train_one_epoch_test(
     flow,
     test_set,
     pre_train_size,
@@ -159,7 +159,7 @@ def pre_train_epoch_test(
     return loss_epoch_test.item()
 
 
-def train_epoch(
+def train_one_epoch(
     flow,
     optimizer,
     train_set,
@@ -242,7 +242,7 @@ def train_epoch(
     return loss_epoch.item()
 
 
-def test_epoch(
+def test_one_epoch(
     flow,
     test_set,
     batch_size,
@@ -360,7 +360,7 @@ def train_flow(
     
     if pre_train:
         for epoch in tqdm(range(pre_train_epoch)):
-            loss_epoch = pre_train_epoch(
+            loss_epoch = pre_train_one_epoch(
                 flow=flow,
                 optimizer=optimizer,
                 train_set=train_set,
@@ -371,7 +371,7 @@ def train_flow(
                 tensor_order=tensor_order,
                 scaler=scaler
             )
-            loss_epoch_test = pre_train_epoch_test(
+            loss_epoch_test = pre_train_one_epoch_test(
                 flow=flow,
                 test_set=test_set,
                 pre_train_size=pre_train_size,
@@ -392,7 +392,7 @@ def train_flow(
         flow.eval()
 
         # Evaluate on test one more time after pre-training
-        loss_epoch_test = pre_train_epoch_test(
+        loss_epoch_test = pre_train_one_epoch_test(
             flow=flow,
             test_set=test_set,
             pre_train_size=pre_train_size,
@@ -445,7 +445,7 @@ def train_flow(
 
     for epoch in tqdm(range(1, n_epoch + 1)):
         # Single training epoch
-        loss_epoch = train_epoch(
+        loss_epoch = train_one_epoch(
             flow=flow,
             optimizer=optimizer,
             train_set=train_set,
@@ -463,7 +463,7 @@ def train_flow(
 
         # Single testing epoch
         test_size = min(int(len(test_set)/5 - 1), batch_size * 16)
-        loss_epoch_test = test_epoch(
+        loss_epoch_test = test_one_epoch(
             flow=flow,
             test_set=test_set,
             batch_size=test_size,

@@ -74,7 +74,7 @@ def sam_tran(data,error,N,seed= None):
     stars_sample = SkyCoord(
         ra = sample[:,:,0] * u.degree,
         dec = sample[:,:,1] * u.degree,
-        distance = Distance(parallax = abs(center= sample[:,:,2]*u.mas)), # ensure positive parallax
+        distance = Distance(parallax = abs(sample[:,:,2])*u.mas), # ensure positive parallax
         pm_ra_cosdec = sample[:,:,3] * mas_per_yr,
         pm_dec = sample[:,:,4] * mas_per_yr,
         radial_velocity = sample[:,:,5] *km_per_s
