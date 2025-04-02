@@ -8,3 +8,4 @@ scikit-learn
 tqdm
 astropy
 zuko
+astroML
