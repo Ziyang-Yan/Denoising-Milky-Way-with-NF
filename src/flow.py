@@ -85,7 +85,7 @@ def pre_train_one_epoch(
     optimizer,
     train_set,
     train_error,
-    pre_train_size,
+    pre_train_batch_size,
     device,
     norm_factor,
     tensor_order,
@@ -98,7 +98,7 @@ def pre_train_one_epoch(
     flow.train()
     loader = DL(
         list(zip(train_set, train_error)), 
-        batch_size=pre_train_size, 
+        batch_size=pre_train_batch_size, 
         shuffle=True, 
         drop_last=True
     )
@@ -129,7 +129,7 @@ def pre_train_one_epoch(
 def pre_train_one_epoch_test(
     flow,
     test_set,
-    pre_train_size,
+    pre_train_batch_size,
     device,
     norm_factor,
     tensor_order,
@@ -140,7 +140,7 @@ def pre_train_one_epoch_test(
     Return the average negative log likelihood (plus log(norm_factor)).
     """
     flow.eval()
-    loader = DL(test_set, batch_size=pre_train_size, shuffle=True, drop_last=True)
+    loader = DL(test_set, batch_size=pre_train_batch_size, shuffle=True, drop_last=True)
 
     loss_epoch_test_val = 0.0
     n_stars = 0
@@ -298,7 +298,7 @@ def train_flow(
     training_fraction=0.7,
     pre_train=True,
     pre_train_epoch=50,
-    pre_train_size=None,
+    pre_train_batch_size=None,
     num_workers=0,
     clip_norm=True,
     scheduler_setting=None,
@@ -360,15 +360,15 @@ def train_flow(
 
     
     if pre_train:
-        if pre_train_size is None:
-            pre_train_size = int(len(train_set)/5 - 1)
+        if pre_train_batch_size is None:
+            pre_train_batch_size = int(len(train_set)/5 - 1)
         for epoch in tqdm(range(pre_train_epoch)):
             loss_epoch = pre_train_one_epoch(
                 flow=flow,
                 optimizer=optimizer,
                 train_set=train_set,
                 train_error=train_error,
-                pre_train_size=pre_train_size,
+                pre_train_batch_size=pre_train_batch_size,
                 device=device,
                 norm_factor=norm_factor,
                 tensor_order=tensor_order,
@@ -377,7 +377,7 @@ def train_flow(
             loss_epoch_test = pre_train_one_epoch_test(
                 flow=flow,
                 test_set=test_set,
-                pre_train_size=pre_train_size,
+                pre_train_batch_size=pre_train_batch_size,
                 device=device,
                 norm_factor=norm_factor,
                 tensor_order=tensor_order,
@@ -398,7 +398,7 @@ def train_flow(
         loss_epoch_test = pre_train_one_epoch_test(
             flow=flow,
             test_set=test_set,
-            pre_train_size=pre_train_size,
+            pre_train_batch_size=pre_train_batch_size,
             device=device,
             norm_factor=norm_factor,
             tensor_order=tensor_order,
@@ -513,7 +513,7 @@ def train_flow(
         'number_of_sam': number_of_sam,
         'pre_train': pre_train,
         'pre_train_epoch': pre_train_epoch,
-        'pre_train_size': pre_train_size,
+        'pre_train_batch_size': pre_train_batch_size,
         'clip_norm': clip_norm,
         'scheduler_setting': scheduler_setting,
         'test_no_noise': test_no_noise,
