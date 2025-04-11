@@ -298,6 +298,7 @@ def train_flow(
     training_fraction=0.7,
     pre_train=True,
     pre_train_epoch=50,
+    pre_train_size=None,
     num_workers=0,
     clip_norm=True,
     scheduler_setting=None,
@@ -356,9 +357,11 @@ def train_flow(
 
 
     report += f'Pre_train = {pre_train}, pre_train_epoch = {pre_train_epoch}\n'
-    pre_train_size = int(len(train_set)/5 - 1)
+
     
     if pre_train:
+        if pre_train_size is None:
+            pre_train_size = int(len(train_set)/5 - 1)
         for epoch in tqdm(range(pre_train_epoch)):
             loss_epoch = pre_train_one_epoch(
                 flow=flow,
@@ -510,6 +513,7 @@ def train_flow(
         'number_of_sam': number_of_sam,
         'pre_train': pre_train,
         'pre_train_epoch': pre_train_epoch,
+        'pre_train_size': pre_train_size,
         'clip_norm': clip_norm,
         'scheduler_setting': scheduler_setting,
         'test_no_noise': test_no_noise,
