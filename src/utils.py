@@ -10,8 +10,14 @@ from torch.utils.data import Dataset, DataLoader
 from tqdm import *
 import random
 from .plotting import plot_his,plot_velocity,plot_velocity_z,plot_spiral,plot_1d,plot_corner_6d_large
+from .flow import load_and_gen_sample
 
-def select_stars(table , sector):
+def select_stars(table, sector):
+    """
+    Filters stars from the input astropy Qtable (with units) based on the specified sector.
+    Supports Cartesian and Galactocentric coordinate systems.
+    """
+    
     gaia_stars = table
     parallax = gaia_stars['parallax'].value
     sindx = np.where( (parallax > 0)
@@ -41,7 +47,11 @@ def select_stars(table , sector):
     # print(f'number of stars select = {gaia_stars["ra"].size}')
     return gaia_stars, sector
 
-def make_mock_data(input_data,input_error,amp,training_fraction=0.7,seed=42):
+def make_mock_data(input_data, input_error, amp, training_fraction=0.7, seed=42):
+    """
+    Generates mock data by adding Gaussian noise to the training data.
+    Splits the input data into training and testing sets.
+    """
     np.random.seed(seed)
     random.seed(seed)
     n_star = len(input_data)
@@ -56,7 +66,11 @@ def make_mock_data(input_data,input_error,amp,training_fraction=0.7,seed=42):
 
 
 
-def sampling_function(data,error,N,seed= None):
+def sampling_function(data, error, N, seed=None):
+    """
+    Generates N samples for each star using Gaussian distributions.
+    Ensures positive parallax values.
+    """
     np.random.seed(seed)
     random.seed(seed)
     # uncorelated guassian distribution
@@ -65,7 +79,11 @@ def sampling_function(data,error,N,seed= None):
     parallax_factor[sample[:,:,2].reshape(-1,1)<0] = 0
     return sample, parallax_factor.reshape(sample[:,:,2].shape)
 
-def sam_tran(data,error,N,seed= None):
+def sam_tran(data, error, N, seed=None):
+    """
+    Transforms sampled data into Galactocentric cylindrical coordinates.
+    Returns the transformed data and parallax correction factors.
+    """
     sample,parallax_factor = sampling_function(data,error,N,seed)
     
     mas_per_yr = u.mas/u.yr
@@ -95,7 +113,11 @@ def sam_tran(data,error,N,seed= None):
     return stars_data_cyl,parallax_factor,stars_sample
 
 
-def selection_func(stars_sam,sam_max, sam_min = 1, sig_v = 1 ):
+def selection_func(stars_sam, sam_max, sam_min=1, sig_v=1):
+    """
+    Determines the number of samples per star based on velocity variance.
+    Returns a selection factor tensor for sampling.
+    """
     number_of_sam = sam_max
     sam_per_star = (np.ceil((np.maximum(stars_sam['v_r'].var(axis=1),
                         stars_sam['v_phi'].var(axis=1),
@@ -111,6 +133,10 @@ def selection_func(stars_sam,sam_max, sam_min = 1, sig_v = 1 ):
     return selection_factor.reshape(-1,1), sam_per_star
 
 def dict_to_tensor(input_data,tensor_order = None):
+    """
+    Converts a dictionary of star data into a tensor.
+    Orders the data based on the specified tensor order.
+    """
     if tensor_order != None:
         output_data = np.hstack([input_data[key].reshape(-1,1) for key in tensor_order])
     else:
@@ -120,6 +146,9 @@ def dict_to_tensor(input_data,tensor_order = None):
     return output_data
 
 def mask_gen(input_data,dim, boundaries):
+    """
+    Generates masks for filtering data based on specified boundaries.
+    """
     mask =[]
     for i in range(len(boundaries)):
         mask.append(
@@ -127,7 +156,11 @@ def mask_gen(input_data,dim, boundaries):
         )
     return mask
 
-def load_and_plot(path,tf=0.7):
+def load_and_plot(path, tf=0.7):
+    """
+    Loads model results and generates various plots for analysis.
+    Includes velocity, spiral, and corner plots.
+    """
     result = load_and_gen_sample(path,tf)
     train_cyl = result['train_cyl']
     mock_cyl = result['mock_cyl']

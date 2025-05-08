@@ -31,6 +31,10 @@ import random
 
 
 class RQS_Flow(zuko.flows.Flow):
+    """
+    Defines a rational quadratic spline (RQS) flow model.
+    Supports optional LU decomposition for stability.
+    """
     def __init__(self, features: int, transforms: int, context: int = 0, hidden_features: Sequence[int] = (64, 64),flow_type = "RQS" ,bins = 8,eps=1e-3,LU= False):
         if flow_type == 'RQS':
             transform_type = zuko.transforms.MonotonicRQSTransform
@@ -92,8 +96,8 @@ def pre_train_one_epoch(
     scaler
 ):
     """
-    Run one epoch of *pre-training* on 'flow' given training data and errors.
-    Return the average negative log likelihood loss (plus log(norm_factor)).
+    Performs one epoch of pre-training for the flow model.
+    Uses training data without noise for initialization.
     """
     flow.train()
     loader = DL(
@@ -136,8 +140,7 @@ def pre_train_one_epoch_test(
     scaler
 ):
     """
-    Evaluate the log probability on the test set (single epoch of test for pre-training).
-    Return the average negative log likelihood (plus log(norm_factor)).
+    Evaluates the flow model on the test set during pre-training.
     """
     flow.eval()
     loader = DL(test_set, batch_size=pre_train_batch_size, shuffle=True, drop_last=True)
@@ -175,8 +178,8 @@ def train_one_epoch(
     test_no_noise
 ):
     """
-    Run one epoch of *main training* on 'flow'.
-    Return the average negative log likelihood (plus log(norm_factor)).
+    Performs one epoch of main training for the flow model.
+    Includes noise injection and selection function evaluation.
     """
     flow.train()
     
@@ -252,8 +255,7 @@ def test_one_epoch(
     scaler
 ):
     """
-    Run a single epoch of testing on 'flow'.
-    Return the average negative log likelihood (plus log(norm_factor)).
+    Evaluates the flow model on the test set during main training.
     """
     flow.eval()
     loader_test = DL(test_set, batch_size=batch_size, shuffle=True, drop_last=True)
@@ -305,19 +307,9 @@ def train_flow(
     test_no_noise=False
 ):
     """
-    Main function orchestrating:
-      - (Optionally) Pre-training
-      - Main training epochs
-      - (Optionally) Scheduling
-      - Saving best model & metadata
-
-    Dependencies (assumed to exist):
-      - sam_tran(data_batch, error_batch, number_of_sam)
-      - dict_to_tensor(stars_data_cyl, tensor_order)
-      - selection_func(stars_data_cyl, number_of_sam1, number_of_sam2)
+    Orchestrates the training process for the flow model.
+    Includes pre-training, main training, and scheduler updates.
     """
-
-
     if flow_setting['features'] == 3:
         tensor_order = ['v_r','v_phi','v_z']
     elif flow_setting['features'] == 4:
@@ -563,6 +555,9 @@ def train_flow(
 
 
 def load_flow(state_dict, flow_setting,device):
+    """
+    Loads a flow model from a saved state dictionary.
+    """
     flow = RQS_Flow(**flow_setting).to(device)
     flow.load_state_dict(state_dict)
     flow.eval()
@@ -570,6 +565,9 @@ def load_flow(state_dict, flow_setting,device):
 
 
 def sample_from_flow(flow,scaler,num_samples,batch_size):
+    """
+    Generates samples from the trained flow model.
+    """
     flow.eval()
     torch.cuda.empty_cache()
     num_batches = num_samples // batch_size
@@ -581,7 +579,10 @@ def sample_from_flow(flow,scaler,num_samples,batch_size):
 
 
 def load_and_gen_sample(model_path,data_path):
-    model_parameters = torch.load(os.path.join(model_path,'model_parameters.pth'))
+    """
+    Loads a trained flow model and generates samples for analysis.
+    """
+    model_parameters = torch.load(os.path.join(model_path,'model_parameters.pth'), weights_only=False)
 
     print(model_parameters['best_epoch'])
     print(model_parameters['best_loss'])
@@ -591,8 +592,6 @@ def load_and_gen_sample(model_path,data_path):
     scaler = sklearn.preprocessing.StandardScaler()
     scaler.mean_ = model_parameters['scaler_mean']
     scaler.scale_ = model_parameters['scaler_scale']
-
-
 
 
 

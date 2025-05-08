@@ -11,17 +11,18 @@ import corner
 
 
 def plot_his(epoch_his,loss_his, loss_his_test = None, save_path = None,name = 'his'):
-    # print(f'denoise setting {best_epoch}_{epoch_his}_s_{self.number_of_sam}_{self.check_point["best_loss"]:.6f}')
+    """
+    Plots the training and testing loss history over epochs.
+    Optionally saves the plot to a specified path.
+    """
     plt.figure(2)
     plt.plot(epoch_his,loss_his, label = 'train_loss')
     if loss_his_test:
         plt.plot(epoch_his,loss_his_test, label = 'test_loss')
     plt.legend()
     plt.title(f'loss history')
-    # plt.suptitle(f'rho {self.stars_dataset.sector["rho"]*u.kpc}, phi {self.stars_dataset.sector["phi"]*u.deg}, z {self.stars_dataset.sector["z"]*u.kpc}')
     plt.xlabel(f'number of epoch')
     plt.ylabel(f'loss')
-    # plt.text(.01, .99, f'best_epoch = {best_epoch}, best_loss={best_loss:.5f}', ha='left', va='top')
     if save_path:
         plt.savefig(os.path.join(save_path,name), format='png', bbox_inches = 'tight' , dpi = 600)
     plt.show()
@@ -32,6 +33,10 @@ def plot_his(epoch_his,loss_his, loss_his_test = None, save_path = None,name = '
 
 
 def plot_velocity(data_list,data_text,title, n_norm = 0,save_path = None,file_name = 'velocity'):
+    """
+    Plots 2D velocity histograms for multiple datasets.
+    Includes comparisons of v_r vs v_phi, v_r vs v_z, and v_z vs v_phi.
+    """
     nbins=1
     vrange = [[-150, 150.0],[50.0, 350], [-150, 150.0]]
     bins = [(nbins*round(vrange[0][1] - vrange[0][0]) , round(nbins*vrange[1][1] - vrange[1][0])),(nbins*round(vrange[0][1] - vrange[0][0]) , round(nbins*vrange[2][1] - vrange[2][0])),(nbins*round(vrange[2][1] - vrange[2][0]) , round(nbins*vrange[1][1] - vrange[1][0]))]
@@ -103,6 +108,10 @@ def plot_velocity(data_list,data_text,title, n_norm = 0,save_path = None,file_na
 
 
 def plot_velocity_z(data_list,data_text,title,save_path = None,file_name = 'velocity_z'):
+    """
+    Plots 2D histograms of v_r vs v_phi for multiple datasets.
+    Focuses on a specific velocity range.
+    """
     bin_size = 0.5
     vrange =[[-60,60],[160,220]]
     bins = (round((vrange[0][1] - vrange[0][0])/bin_size),round((vrange[1][1] - vrange[1][0])/bin_size))
@@ -147,7 +156,10 @@ def plot_velocity_z(data_list,data_text,title,save_path = None,file_name = 'velo
 
 
 def plot_spiral(data_list,data_text,name,save_path = None):
-
+    """
+    Plots the spiral structure of the galaxy using z vs v_z.
+    Includes median values of v_r and v_phi.
+    """
     vrange = {
         'z' : [-1, 1],
         'v_z' : [-60.0,60.0],
@@ -185,16 +197,115 @@ def plot_spiral(data_list,data_text,name,save_path = None):
         plt.savefig(os.path.join(save_path,'spiral'), format='png', bbox_inches = 'tight' , dpi = 1000)
     plt.show()
 
+def plot_velocity_residual(
+    data_list, row_a=0, row_b=2, data_labels=None,
+    save_path=None, file_name='velocity_residual', zvalue=None
+):
+    """
+    Computes and plots residuals between two datasets in velocity space.
+    Residuals are normalized by the combined counts in bins.
+    """
+    # Define velocity range and bins
+    vrange = [[-150, 150.0], [50.0, 350], [-150, 150.0]]
+    nbins = 1
+    bins = [
+        (nbins * round(vrange[0][1] - vrange[0][0]), round(nbins * vrange[1][1] - vrange[1][0])),
+        (nbins * round(vrange[0][1] - vrange[0][0]), round(nbins * vrange[2][1] - vrange[2][0])),
+        (nbins * round(vrange[2][1] - vrange[2][0]), round(nbins * vrange[1][1] - vrange[1][0]))
+    ]
+    extent = (
+        [vrange[0][0], vrange[0][1], vrange[1][0], vrange[1][1]],
+        [vrange[0][0], vrange[0][1], vrange[2][0], vrange[2][1]],
+        [vrange[2][0], vrange[2][1], vrange[1][0], vrange[1][1]]
+    )
+
+    def gen_mask(data, vrange):
+        return (
+            (data[:, 0] > vrange[0][0]) & (data[:, 0] < vrange[0][1]) &
+            (data[:, 1] > vrange[1][0]) & (data[:, 1] < vrange[1][1]) &
+            (data[:, 2] > vrange[2][0]) & (data[:, 2] < vrange[2][1])
+        )
+
+    def extract(data, mask):
+        return data[mask][:, 0], data[mask][:, 1], data[mask][:, 2]
+
+    # Apply masks and extract components
+    mask_a = gen_mask(data_list[row_a], vrange)
+    mask_b = gen_mask(data_list[row_b], vrange)
+    vr_a, vphi_a, vz_a = extract(data_list[row_a], mask_a)
+    vr_b, vphi_b, vz_b = extract(data_list[row_b], mask_b)
+
+    # Compute 2D histograms
+    stat_a1, _, _, _ = scipy.stats.binned_statistic_2d(vr_a, vphi_a, vz_a, statistic='count', bins=bins[0], range=vrange[:2])
+    stat_b1, _, _, _ = scipy.stats.binned_statistic_2d(vr_b, vphi_b, vz_b, statistic='count', bins=bins[0], range=vrange[:2])
+
+    stat_a2, _, _, _ = scipy.stats.binned_statistic_2d(vr_a, vz_a, vphi_a, statistic='count', bins=bins[1], range=[vrange[0], vrange[2]])
+    stat_b2, _, _, _ = scipy.stats.binned_statistic_2d(vr_b, vz_b, vphi_b, statistic='count', bins=bins[1], range=[vrange[0], vrange[2]])
+
+    stat_a3, _, _, _ = scipy.stats.binned_statistic_2d(vz_a, vphi_a, vr_a, statistic='count', bins=bins[2], range=[vrange[2], vrange[1]])
+    stat_b3, _, _, _ = scipy.stats.binned_statistic_2d(vz_b, vphi_b, vr_b, statistic='count', bins=bins[2], range=[vrange[2], vrange[1]])
+
+    # Residuals (Z-score-like: difference over sqrt(count))
+    res1 = np.where(stat_a1 + stat_b1 !=0,(stat_a1 - stat_b1) / np.sqrt(stat_a1 + stat_b1),0)
+    res2 = np.where(stat_a2 + stat_b2 !=0,(stat_a2 - stat_b2) / np.sqrt(stat_a2 + stat_b2),0)
+    res3 = np.where(stat_a3 + stat_b3 !=0,(stat_a3 - stat_b3) / np.sqrt(stat_a3 + stat_b3),0)
 
 
-def plot_1d(result,save_path = None,file_name = '1d'):
+    # Symmetrical color scale (linear)
+    vmax = np.abs([res1, res2, res3]).max()
+    print(res1.max(),res2.max(),res3.max())
+    # Plotting
+    fig, axs = plt.subplots(nrows=1, ncols=3, figsize=(14, 4))
+    titles = [r'$v_r$ vs $v_{\phi}$', r'$v_r$ vs $v_z$', r'$v_z$ vs $v_{\phi}$']
+    extents = [extent[0], extent[1], extent[2]]
+    data_pairs = [res1, res2, res3]
+    labels = [(r'$v_r$', r'$v_{\phi}$'), (r'$v_r$', r'$v_z$'), (r'$v_z$', r'$v_{\phi}$')]
+
+    for i in range(3):
+        im = axs[i].imshow(
+            data_pairs[i].T,
+            cmap='seismic',
+            origin='lower',
+            extent=extents[i],
+            interpolation='none',
+            vmin=-vmax,
+            vmax=vmax
+        )
+        # axs[i].set_title(f'Residual: {titles[i]}', fontsize=12)
+        axs[i].set_xlabel(labels[i][0] + ' [km/s]', fontsize=12)
+        axs[i].set_ylabel(labels[i][1] + ' [km/s]', fontsize=12)
+
+    # Colorbar
+    fig.subplots_adjust(left=0.07, right=0.89, top=0.9, bottom=0.12, wspace=0.20)
+    cbar_ax = fig.add_axes([0.91, 0.1, 0.015, 0.8])
+    cbar = fig.colorbar(im, cax=cbar_ax)
+    cbar.set_label(f'Normalised Residual Counts in Bin', fontsize=12)
+
+
+    # Save as PDF
+    if save_path:
+        plt.savefig(os.path.join(save_path, file_name + '.pdf'), format='pdf', bbox_inches='tight')
+
+    plt.show()
+
+
+
+
+
+
+def plot_1d(result, save_path=None, file_name='1d'):
+    """
+    Plots 1D distributions of velocity and spatial parameters.
+    Uses kernel density estimation for smooth curves.
+    """
+    # Define velocity range based on feature count
     if result['model_parameters']['flow_setting']['features'] == 3:
-        vrange = [[-200.0, 200.0],[0.0, 400.0], [-200.0, 200.0]]
+        vrange = [[-200.0, 200.0], [0.0, 400.0], [-200.0, 200.0]]
     elif result['model_parameters']['flow_setting']['features'] == 6:
-        vrange = [[-200.0, 200.0],[0.0, 400.0], [-200.0, 200.0],[-2.5,2.5],[8.1-0.2,8.1+0.2],[180-2,180+2]]
-
-
-
+        vrange = [[-200.0, 200.0], [0.0, 400.0], [-200.0, 200.0], [-2.5, 2.5], [7.9, 8.3], [178, 182]]
+    else:
+        raise ValueError("Unsupported feature count in model parameters.")
+    
     def gen_mask(data,vrange):
         return    (
         (data[:,0] > vrange[0][0]) & (data[:,0] < vrange[0][1])
@@ -202,24 +313,43 @@ def plot_1d(result,save_path = None,file_name = '1d'):
         & (data[:,2] > vrange[2][0]) & (data[:,2] < vrange[2][1])
         & (data[:,3] > vrange[3][0]) & (data[:,3] < vrange[3][1])
         )
+    # Apply masks
+    con_flow = gen_mask(result['flow_sam'], vrange)
+    con_train = gen_mask(result['train_cyl'], vrange)
+    con_mock = gen_mask(result['mock_cyl'], vrange)
 
-    con_flow = gen_mask(result['flow_sam'],vrange)
-    con_train = gen_mask(result['train_cyl'],vrange)
-    con_mock = gen_mask(result['mock_cyl'],vrange)
+    # Build combined DataFrame
+    a = pd.DataFrame(result['flow_sam'][con_flow], columns=[r'$v_r$', '$v_{{\phi}}$', '$v_z$', '$z$', '$\rho$', '$\phi$'])
+    a.insert(0, 'type', 'flow')
+    b = pd.DataFrame(result['train_cyl'][con_train], columns=[r'$v_r$', '$v_{{\phi}}$', '$v_z$', '$z$', '$\rho$', '$\phi$'])
+    b.insert(0, 'type', 'gaia')
+    c = pd.DataFrame(result['mock_cyl'][con_mock], columns=[r'$v_r$', '$v_{{\phi}}$', '$v_z$', '$z$', '$\rho$', '$\phi$'])
+    c.insert(0, 'type', 'mock')
+    data_frame = pd.concat([a, b, c])
 
+    # Line styles, colors, and alpha
+    style_map = {
+        'gaia': {'label': 'Gaia', 'linestyle': '-', 'color': 'blue', 'alpha': 0.6,'linewidth' : 4.5},
+        'mock': {'label': 'Mock', 'linestyle': '--', 'color': 'black', 'alpha': 0.8, 'linewidth' : 2.5},
+        'flow': {'label': 'Flow', 'linestyle': ':', 'color': 'red', 'alpha': 0.8, 'linewidth' : 2.5}
+    }
 
-    a = pd.DataFrame(result['flow_sam'][con_flow],columns=[r'$v_r$','$v_{{\phi}}$','$v_z$','$z$','$\rho$','$\phi$'])
-    a.insert(0,'type','flow')
-    b = pd.DataFrame(result['train_cyl'][con_train],columns=[r'$v_r$','$v_{{\phi}}$','$v_z$','$z$','$\rho$','$\phi$'])
-    b.insert(0,'type','gaia')
-    c = pd.DataFrame(result['mock_cyl'][con_mock],columns=[r'$v_r$','$v_{{\phi}}$','$v_z$','$z$','$\rho$','$\phi$'])
-    c.insert(0,'type','mock')
-    data_frame = pd.concat([a,b,c])
-
-
-    for x in ['$v_r$','$v_{{\phi}}$','$v_z$','$z$']:
-        sns_plot = sns.displot(data_frame,x=x,hue='type',kind='kde')
-        plt.savefig(os.path.join(save_path,file_name + x + '.pdf'), format='pdf', bbox_inches = 'tight' , dpi = 300)
+    # Plot each variable
+    for x in [r'$v_r$', r'$v_{{\phi}}$', r'$v_z$', r'$z$']:
+        plt.figure()
+        for type_key, props in style_map.items():
+            subset = data_frame[data_frame['type'] == type_key][x].dropna()
+            sns.kdeplot(
+                subset, label=props['label'], linestyle=props['linestyle'],
+                color=props['color'], alpha=props['alpha'], linewidth=props['linewidth']
+            )
+        plt.xlabel(x, fontsize=12)
+        plt.ylabel('Density', fontsize=12)
+        plt.title(f'Distribution of {x}', fontsize=14)
+        plt.legend()
+        plt.tight_layout()
+        if save_path:
+            plt.savefig(os.path.join(save_path, file_name + x + '.pdf'), format='pdf', bbox_inches='tight', dpi=300)
         plt.show()
 
 def plot_corner_6d_large(datasets, labels_list, colors, max_points=100000, save_path=None, file_name="corner_plot",):
