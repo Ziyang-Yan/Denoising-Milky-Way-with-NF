@@ -7,8 +7,8 @@ setup(
     author="Ziyang Yan",
     author_email="Ziyang.yan.17@ucl.ac.uk",
     url="https://github.com/Ziyang-Yan/Denoising-Milky-Way-with-NF",
-    packages=find_packages(where="src"),
-    package_dir={"": "src"},
+    packages=find_packages(where="denoising_milky_way"),
+    package_dir={"": "denoising_milky_way"},
     install_requires=[
         "numpy",
         "matplotlib",

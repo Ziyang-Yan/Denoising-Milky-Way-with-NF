@@ -24,7 +24,7 @@ from torch.utils.data import DataLoader as DL
 import sklearn.preprocessing
 from tqdm import *
 
-from .utils import select_stars, make_mock_data,sam_tran,selection_func,dict_to_tensor
+from denoising_milky_way.utils import select_stars, make_mock_data,sam_tran,selection_func,dict_to_tensor
 
 import random
 
