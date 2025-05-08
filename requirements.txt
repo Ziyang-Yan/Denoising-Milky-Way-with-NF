@@ -9,3 +9,4 @@ tqdm
 astropy
 zuko
 astroML
+corner
