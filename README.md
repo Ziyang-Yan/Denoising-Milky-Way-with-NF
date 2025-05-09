@@ -4,15 +4,6 @@
 This repository was used to train models and generate results presented in Section 3.3 Fiducial setup of the Denoising Milky Way stellar survey data with normalizing flow models. Which contains the implementation of a novel machine-learning approach using Normalizing Flows for denoising and density estimation of stellar survey data, particularly from the Gaia dataset. The method is designed to handle heteroscedastic noise in the data, enabling precise characterization of intricate Milky Way substructures such as moving groups and the phase spiral.
 
 
-## Repository Structure
-- **`dmw_nf/utils.py`**: Utility functions for data preprocessing, sampling, and transformations.
-- **`dmw_nf/plotting.py`**: Visualization utilities for analyzing data and model outputs.
-- **`dmw_nf/flow.py`**: Implementation of Normalizing Flow models and training pipelines.
-- **`example/example.ipynb`**: A Jupyter Notebook demonstrating the core concept with a demo.
-- **`model`**: The trained normalising flow models and plots used in the paper.
-
-
-
 
 ## Usage
 1. **Data Preprocessing**:
