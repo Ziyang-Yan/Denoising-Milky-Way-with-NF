@@ -5,17 +5,14 @@ This repository was used to train models and generate results presented in Secti
 
 
 ## Repository Structure
-- **`src/utils.py`**: Utility functions for data preprocessing, sampling, and transformations.
-- **`src/plotting.py`**: Visualization utilities for analyzing data and model outputs.
-- **`src/flow.py`**: Implementation of Normalizing Flow models and training pipelines.
+- **`dmw_nf/utils.py`**: Utility functions for data preprocessing, sampling, and transformations.
+- **`dmw_nf/plotting.py`**: Visualization utilities for analyzing data and model outputs.
+- **`dmw_nf/flow.py`**: Implementation of Normalizing Flow models and training pipelines.
 - **`example/example.ipynb`**: A Jupyter Notebook demonstrating the core concept with a demo.
-- **`model`**: The trained normalising flow models used in the paper.
+- **`model`**: The trained normalising flow models and plots used in the paper.
 
-## Installation
-To set up the environment, install the required dependencies:
-```bash
-pip install -r requirements.txt
-```
+
+
 
 ## Usage
 1. **Data Preprocessing**:
@@ -25,7 +22,7 @@ pip install -r requirements.txt
 3. **Visualization**:
    - Use `src/plotting.py` to visualize velocity distributions, phase-space spirals, and other substructures.
 4. **Example Notebook**:
-   - Refer to `example/example.ipynb` for a step-by-step guide on using the codebase.
+   - Refer to `example/example.ipynb` for a demo that demonstrating the core concept.
 5. **Trained model**:
    - Check `model` for the trained models and associated plots that used in the paper.
 

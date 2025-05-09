@@ -1,16 +1,15 @@
 from typing import *
 import numpy as np
 from astropy import units as u
-from astropy.coordinates import (SkyCoord, Distance, Galactic)
+from astropy.coordinates import (SkyCoord, Distance)
 import astropy.coordinates as coord
 from astropy import uncertainty as unc
 from pickle import TRUE
 import torch
-from torch.utils.data import Dataset, DataLoader
 from tqdm import *
 import random
-from denoising_milky_way.plotting import plot_his,plot_velocity,plot_velocity_z,plot_spiral,plot_1d,plot_corner_6d_large
-from denoising_milky_way.flow import load_and_gen_sample
+from dmw_nf.plotting import plot_his,plot_velocity,plot_velocity_z,plot_spiral,plot_1d,plot_corner_6d_large
+from dmw_nf.flow import load_and_gen_sample
 
 def select_stars(table, sector):
     """

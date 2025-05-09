@@ -1,30 +1,20 @@
-from typing import *
+from typing import Sequence
 import numpy as np
 import copy
-from astropy import units as u
-from astropy.coordinates import (SkyCoord, Distance, Galactic)
-import astropy.coordinates as coord
-from astropy.io import fits
 from astropy.table import QTable
-from astropy.time import Time
-from astropy import uncertainty as unc
-import os
 from pathlib import Path
-from pickle import TRUE
 from datetime import datetime
 from time import perf_counter as time
-
+import os
 import zuko
 import torch
 from torch.optim import Adam
-from torch.optim.lr_scheduler import ReduceLROnPlateau as ReduceLR
-from torch.optim.lr_scheduler import StepLR
-from torch.optim.lr_scheduler import ExponentialLR
+from torch.optim.lr_scheduler import ReduceLROnPlateau as ReduceLR, StepLR, ExponentialLR
 from torch.utils.data import DataLoader as DL
 import sklearn.preprocessing
-from tqdm import *
+from tqdm import tqdm
 
-from denoising_milky_way.utils import select_stars, make_mock_data,sam_tran,selection_func,dict_to_tensor
+from dmw_nf.utils import select_stars, make_mock_data, sam_tran, selection_func, dict_to_tensor
 
 import random
 

@@ -5,8 +5,6 @@ import scipy
 import seaborn as sns
 import pandas as pd
 import os
-from pickle import TRUE
-from time import perf_counter as time
 import corner
 
 
