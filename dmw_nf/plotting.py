@@ -6,7 +6,7 @@ import seaborn as sns
 import pandas as pd
 import os
 import corner
-
+from .flow import load_and_gen_sample
 
 def plot_his(epoch_his,loss_his, loss_his_test = None, save_path = None,name = 'his'):
     """
@@ -427,4 +427,57 @@ def plot_corner_6d_large(datasets, labels_list, colors, max_points=100000, save_
     plt.show()
 
 
+def mask_gen(input_data,dim, boundaries):
+    """
+    Generates masks for filtering data based on specified boundaries.
+    """
+    mask =[]
+    for i in range(len(boundaries)):
+        mask.append(
+            (input_data[:,dim] > boundaries[i][0]) &  (input_data[:,dim] < boundaries[i][1])
+        )
+    return mask
 
+
+def load_and_plot(path, tf=0.7):
+    """
+    Loads model results and generates various plots for analysis.
+    Includes velocity, spiral, and corner plots.
+    """
+    result = load_and_gen_sample(path,tf)
+    train_cyl = result['train_cyl']
+    mock_cyl = result['mock_cyl']
+    flow_sam = result['flow_sam']
+    model_parameters = result['model_parameters']
+
+
+    plot_his(model_parameters['best_epoch'], model_parameters['best_loss'],
+    model_parameters['epoch_his'],model_parameters['loss_his'],model_parameters['loss_his_test'],
+    model_parameters['path'])
+
+    data_list = [train_cyl,mock_cyl,flow_sam]
+    data_text = ['gaia','mock','flow']
+
+    plot_velocity(data_list,data_text,f'', 1,path, f'velocity')
+    plot_velocity_z(data_list,data_text,f'',path,f'velocity_z')
+
+    boundaries = [[-1.0,1.0],[-0.3,0.3],[-0.1,0.1],[-0.05,0.05]]
+    train_mask = mask_gen(train_cyl, 3 , boundaries)
+    mock_mask = mask_gen(mock_cyl, 3 , boundaries)
+    flow_mask = mask_gen(flow_sam, 3 , boundaries)
+    data_text = ['gaia','mock','flow']
+    if model_parameters['flow_setting']['features'] != 3:
+        plot_spiral(data_list,data_text,'',path)
+    for i in range(len(boundaries)):
+        data_list = [train_cyl[train_mask[i]],mock_cyl[mock_mask[i]],flow_sam[flow_mask[i]]]
+        plot_velocity(data_list,data_text,f'{boundaries[i][0]}<z<{boundaries[i][1]}', 1,path, f'{boundaries[i][0]}<z<{boundaries[i][1]}_velocity')
+        plot_velocity_z(data_list,data_text,f'{boundaries[i][0]}<z<{boundaries[i][1]}',path,f'{boundaries[i][0]}<z<{boundaries[i][1]}_velocity_z')
+    plot_1d(result,path,f'1d')
+
+    plot_corner_6d_large(
+    datasets=data_list,
+    labels_list=data_text,
+    colors=["blue", "red", "green"],
+    max_points=1000000,
+    save_path=path,
+    file_name='corner')
