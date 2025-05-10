@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader as DL
 import sklearn.preprocessing
 from tqdm import tqdm
 
-from dmw_nf.utils import select_stars, make_mock_data, sam_tran, selection_func, dict_to_tensor
+from .utils import select_stars, make_mock_data, sam_tran, selection_func, dict_to_tensor
 
 import random
 

@@ -8,8 +8,8 @@ from pickle import TRUE
 import torch
 from tqdm import *
 import random
-from dmw_nf.plotting import plot_his,plot_velocity,plot_velocity_z,plot_spiral,plot_1d,plot_corner_6d_large
-from dmw_nf.flow import load_and_gen_sample
+from .plotting import plot_his,plot_velocity,plot_velocity_z,plot_spiral,plot_1d,plot_corner_6d_large
+from .flow import load_and_gen_sample
 
 def select_stars(table, sector):
     """
