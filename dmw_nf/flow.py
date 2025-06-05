@@ -83,7 +83,8 @@ def pre_train_one_epoch(
     device,
     norm_factor,
     tensor_order,
-    scaler
+    scaler,
+    coord_system='cylindrical'
 ):
     """
     Performs one epoch of pre-training for the flow model.
@@ -104,8 +105,8 @@ def pre_train_one_epoch(
         optimizer.zero_grad()
         
         # For pre-training, we typically don't add noise: use torch.zeros_like(...)
-        stars_data_cyl, _, _ = sam_tran(data_batch, torch.zeros_like(data_batch), 1)
-        tensor_batch = scaler.transform(dict_to_tensor(stars_data_cyl, tensor_order))
+        stars_data_cyl, _, _ = sam_tran(data_batch, torch.zeros_like(data_batch), 1,coord_system=coord_system)
+        tensor_batch = scaler.transform(dict_to_tensor(stars_data_cyl, tensor_order,coord_system=coord_system))
         tensor_batch = torch.tensor(tensor_batch, dtype=torch.float32).to(device)
 
         loss = -flow().log_prob(tensor_batch).sum()
@@ -127,7 +128,8 @@ def pre_train_one_epoch_test(
     device,
     norm_factor,
     tensor_order,
-    scaler
+    scaler,
+    coord_system='cylindrical'
 ):
     """
     Evaluates the flow model on the test set during pre-training.
@@ -140,8 +142,8 @@ def pre_train_one_epoch_test(
 
     for _, data_batch in enumerate(loader):
         # Also use no noise here, consistent with pre-training approach
-        stars_data_cyl, _, _ = sam_tran(data_batch, torch.zeros_like(data_batch), 1)
-        tensor_batch = scaler.transform(dict_to_tensor(stars_data_cyl, tensor_order))
+        stars_data_cyl, _, _ = sam_tran(data_batch, torch.zeros_like(data_batch), 1,coord_system=coord_system)
+        tensor_batch = scaler.transform(dict_to_tensor(stars_data_cyl, tensor_order,coord_system=coord_system))
         tensor_batch = torch.tensor(tensor_batch, dtype=torch.float32).to(device)
 
         loss = -flow().log_prob(tensor_batch).sum().detach()
@@ -165,7 +167,8 @@ def train_one_epoch(
     scaler,
     clip_norm,
     number_of_sam,
-    test_no_noise
+    test_no_noise,
+    coord_system='cylindrical'
 ):
     """
     Performs one epoch of main training for the flow model.
@@ -190,11 +193,11 @@ def train_one_epoch(
         # Decide whether or not to use noise
         if test_no_noise:
             stars_data_cyl, parallax_factor, _ = sam_tran(
-                data_batch, torch.zeros_like(error_batch), number_of_sam
+                data_batch, torch.zeros_like(error_batch), number_of_sam,coord_system=coord_system
             )
         else:
             stars_data_cyl, parallax_factor, _ = sam_tran(
-                data_batch, error_batch, number_of_sam
+                data_batch, error_batch, number_of_sam, coord_system=coord_system
             )
 
         # Evaluate selection function
@@ -204,7 +207,7 @@ def train_one_epoch(
         n_stars += len(data_batch)
 
         # Scale inputs
-        tensor_batch = scaler.transform(dict_to_tensor(stars_data_cyl, tensor_order))
+        tensor_batch = scaler.transform(dict_to_tensor(stars_data_cyl, tensor_order,coord_system=coord_system))
         tensor_batch = torch.tensor(tensor_batch, dtype=torch.float32).to(device)
         parallax_factor = parallax_factor.reshape(-1, 1)
 
@@ -242,7 +245,8 @@ def test_one_epoch(
     device,
     norm_factor,
     tensor_order,
-    scaler
+    scaler,
+    coord_system='cylindrical'
 ):
     """
     Evaluates the flow model on the test set during main training.
@@ -254,8 +258,8 @@ def test_one_epoch(
     n_stars_test = 0
 
     for _, data_batch in enumerate(loader_test):
-        stars_data_cyl, _, _ = sam_tran(data_batch, np.zeros_like(data_batch), 1)
-        tensor_batch = scaler.transform(dict_to_tensor(stars_data_cyl, tensor_order))
+        stars_data_cyl, _, _ = sam_tran(data_batch, np.zeros_like(data_batch), 1,coord_system=coord_system)
+        tensor_batch = scaler.transform(dict_to_tensor(stars_data_cyl, tensor_order,coord_system=coord_system))
         tensor_batch = torch.tensor(tensor_batch, dtype=torch.float32).to(device)
 
         loss_t = -flow().log_prob(tensor_batch).sum().detach()
@@ -294,7 +298,8 @@ def train_flow(
     num_workers=0,
     clip_norm=True,
     scheduler_setting=None,
-    test_no_noise=False
+    test_no_noise=False,
+    coord_system='cylindrical'
 ):
     """
     Orchestrates the training process for the flow model.
@@ -308,14 +313,14 @@ def train_flow(
         tensor_order = None
 
 
-    train_set_cyl, _, _ = sam_tran(train_set, np.zeros_like(train_set), 1)
-    training_tensor = dict_to_tensor(train_set_cyl, tensor_order)
+    train_set_cyl, _, _ = sam_tran(train_set, np.zeros_like(train_set), 1,coord_system=coord_system)
+    training_tensor = dict_to_tensor(train_set_cyl, tensor_order,coord_system=coord_system)
     scaler = sklearn.preprocessing.StandardScaler()
     scaler.fit(training_tensor)
 
     if test_set is not None:
-        test_set_cyl, _, _ = sam_tran(test_set, np.zeros_like(test_set), 1)
-        test_tensor = dict_to_tensor(test_set_cyl, tensor_order)
+        test_set_cyl, _, _ = sam_tran(test_set, np.zeros_like(test_set), 1,coord_system=coord_system)
+        test_tensor = dict_to_tensor(test_set_cyl, tensor_order,coord_system=coord_system)
 
     # Compute product of the scaling factors
     norm_factor = 1.0
@@ -354,7 +359,8 @@ def train_flow(
                 device=device,
                 norm_factor=norm_factor,
                 tensor_order=tensor_order,
-                scaler=scaler
+                scaler=scaler,
+                coord_system=coord_system
             )
             loss_epoch_test = pre_train_one_epoch_test(
                 flow=flow,
@@ -363,7 +369,8 @@ def train_flow(
                 device=device,
                 norm_factor=norm_factor,
                 tensor_order=tensor_order,
-                scaler=scaler
+                scaler=scaler,
+                coord_system=coord_system
             )
 
             pre_loss_his.append(loss_epoch)
@@ -384,7 +391,8 @@ def train_flow(
             device=device,
             norm_factor=norm_factor,
             tensor_order=tensor_order,
-            scaler=scaler
+            scaler=scaler,
+            coord_system=coord_system
         )
         report += f"Final pre_train_loss_test = {loss_epoch_test:.5f}\n"
 
@@ -443,7 +451,8 @@ def train_flow(
             scaler=scaler,
             clip_norm=clip_norm,
             number_of_sam=number_of_sam,
-            test_no_noise=test_no_noise
+            test_no_noise=test_no_noise,
+            coord_system=coord_system
         )
 
         # Single testing epoch
@@ -455,7 +464,8 @@ def train_flow(
             device=device,
             norm_factor=norm_factor,
             tensor_order=tensor_order,
-            scaler=scaler
+            scaler=scaler,
+            coord_system=coord_system
         )
 
         # Check for best model
@@ -488,6 +498,7 @@ def train_flow(
     model_parameters = {
         'best_model': flow.state_dict(),
         'denoise': denoise,
+        'coord_system': coord_system,
         'amp': amp,
         'training_fraction': training_fraction,
         'flow_setting': flow_setting,
@@ -521,6 +532,7 @@ def train_flow(
         report += f'{key} : {value}\n'
 
     # Scaler and other info
+    report += f'coord_system = {coord_system}\n'
     report += f'scaler_mean = {scaler.mean_}\n'
     report += f'scaler_scale = {scaler.scale_}\n'
     report += f'denoise = {denoise}\n'
@@ -577,7 +589,7 @@ def load_and_gen_sample(model_path,data_path):
     print(model_parameters['best_epoch'])
     print(model_parameters['best_loss'])
     print(model_parameters['best_loss_test'])
-
+    coord_system = model_parameters['coord_system']
 
     scaler = sklearn.preprocessing.StandardScaler()
     scaler.mean_ = model_parameters['scaler_mean']
@@ -616,13 +628,13 @@ def load_and_gen_sample(model_path,data_path):
     else:
         tensor_order = None
 
-    train_cyl, _,train_object = sam_tran(training_data,np.zeros_like(training_data),1)
-    train_cyl = dict_to_tensor(train_cyl,tensor_order)
+    train_cyl, _,train_object = sam_tran(training_data,np.zeros_like(training_data),1,coord_system=coord_system)
+    train_cyl = dict_to_tensor(train_cyl,tensor_order,coord_system=coord_system)
 
 
 
-    mock_cyl, _,mock_object = sam_tran(mock_data,np.zeros_like(mock_data),1)
-    mock_cyl = dict_to_tensor(mock_cyl,tensor_order)
+    mock_cyl, _,mock_object = sam_tran(mock_data,np.zeros_like(mock_data),1,coord_system=coord_system)
+    mock_cyl = dict_to_tensor(mock_cyl,tensor_order,coord_system=coord_system)
 
 
     flow.eval()

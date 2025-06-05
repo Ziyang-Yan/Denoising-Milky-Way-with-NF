@@ -13,7 +13,7 @@ import random
 def select_stars(table, sector):
     """
     Filters stars from the input astropy Qtable (with units) based on the specified sector.
-    Supports Cartesian and Galactocentric coordinate systems.
+    Supports Cartesian and Galactocentric cylindrical coordinate systems.
     """
     
     gaia_stars = table
@@ -77,9 +77,9 @@ def sampling_function(data, error, N, seed=None):
     parallax_factor[sample[:,:,2].reshape(-1,1)<0] = 0
     return sample, parallax_factor.reshape(sample[:,:,2].shape)
 
-def sam_tran(data, error, N, seed=None):
+def sam_tran(data, error, N, seed=None,coord_system='cylindrical'):
     """
-    Transforms sampled data into Galactocentric cylindrical coordinates.
+    Transforms sampled data into Galactocentric cylindrical coordinates or Cartesian coordinates.
     Returns the transformed data and parallax correction factors.
     """
     sample,parallax_factor = sampling_function(data,error,N,seed)
@@ -95,19 +95,32 @@ def sam_tran(data, error, N, seed=None):
         pm_dec = sample[:,:,4] * mas_per_yr,
         radial_velocity = sample[:,:,5] *km_per_s
     )
-    stars_sample = stars_sample.transform_to(coord.builtin_frames.Galactocentric())
-    stars_sample.representation_type = 'cylindrical'
-    stars_sample.phi.wrap_at('360d', inplace=True)
+    if coord_system == 'cylindrical':
+        stars_sample = stars_sample.transform_to(coord.builtin_frames.Galactocentric())
+        stars_sample.representation_type = 'cylindrical'
+        stars_sample.phi.wrap_at('360d', inplace=True)
+        stars_data_cyl = {
+            'rho' : stars_sample.rho.to(u.kpc).value,
+            'phi' : stars_sample.phi.value,
+            'z' : stars_sample.z.to(u.kpc).value,
+            'v_r' : stars_sample.d_rho.to(u.km/u.s).value,
+            'v_phi' : -(stars_sample.rho * stars_sample.d_phi).to(u.km/u.s, equivalencies = u.dimensionless_angles()).value,
+            'v_z' : stars_sample.d_z.to(u.km/u.s).value
+        }
+    elif coord_system == 'cartesian':
+        stars_sample = stars_sample.transform_to(coord.builtin_frames.Galactocentric())
+        stars_sample.representation_type = 'cartesian'
+        stars_data_cyl = {
+            'x' : stars_sample.x.to(u.kpc).value,
+            'y' : stars_sample.y.to(u.kpc).value,
+            'z' : stars_sample.z.to(u.kpc).value,
+            'v_x' : stars_sample.v_x.to(u.km/u.s).value,
+            'v_y' : stars_sample.v_y.to(u.km/u.s).value,
+            'v_z' : stars_sample.v_z.to(u.km/u.s).value
+        }
+    else:
+        raise Exception('coord_system should be cylindrical or cartesian')
 
-
-    stars_data_cyl = {
-        'rho' : stars_sample.rho.to(u.kpc).value,
-        'phi' : stars_sample.phi.value,
-        'z' : stars_sample.z.to(u.kpc).value,
-        'v_r' : stars_sample.d_rho.to(u.km/u.s).value,
-        'v_phi' : -(stars_sample.rho * stars_sample.d_phi).to(u.km/u.s, equivalencies = u.dimensionless_angles()).value,
-        'v_z' : stars_sample.d_z.to(u.km/u.s).value
-    }
     return stars_data_cyl,parallax_factor,stars_sample
 
 
@@ -117,20 +130,21 @@ def selection_func(stars_sam, sam_max, sam_min=1, sig_v=1):
     Returns a selection factor tensor for sampling.
     """
     number_of_sam = sam_max
-    sam_per_star = (np.ceil((np.maximum(stars_sam['v_r'].var(axis=1),
-                        stars_sam['v_phi'].var(axis=1),
-                        stars_sam['v_z'].var(axis=1)  ) + sig_v**2)/sig_v**2)).astype(int)
-    sam_per_star[sam_per_star <= sam_min] = sam_min
-    sam_per_star[sam_per_star >= sam_max] = sam_max
-    sam_per_star = torch.tensor(sam_per_star)
+    # sam_per_star = (np.ceil((np.maximum(stars_sam['v_r'].var(axis=1),
+    #                     stars_sam['v_phi'].var(axis=1),
+    #                     stars_sam['v_z'].var(axis=1)  ) + sig_v**2)/sig_v**2)).astype(int)
+    # sam_per_star[sam_per_star <= sam_min] = sam_min
+    # sam_per_star[sam_per_star >= sam_max] = sam_max
+    # sam_per_star = torch.tensor(sam_per_star)
 
-    selection_factor = torch.zeros((len(sam_per_star),number_of_sam))
-    for i in range(len(sam_per_star)):
-        selection_factor[i, 0:sam_per_star[i]] = 1
-
+    # selection_factor = torch.zeros((len(sam_per_star),number_of_sam))
+    # for i in range(len(sam_per_star)):
+    #     selection_factor[i, 0:sam_per_star[i]] = 1
+    sam_per_star = torch.tensor(np.ones(len(stars_sam[next(iter(stars_sam))])) * sam_max)
+    selection_factor = torch.ones((len(stars_sam[next(iter(stars_sam))]),number_of_sam))
     return selection_factor.reshape(-1,1), sam_per_star
 
-def dict_to_tensor(input_data,tensor_order = None):
+def dict_to_tensor(input_data,tensor_order = None,coord_system='cylindrical'):
     """
     Converts a dictionary of star data into a tensor.
     Orders the data based on the specified tensor order.
@@ -138,9 +152,16 @@ def dict_to_tensor(input_data,tensor_order = None):
     if tensor_order != None:
         output_data = np.hstack([input_data[key].reshape(-1,1) for key in tensor_order])
     else:
-        output_data = np.hstack((input_data['v_r'].reshape(-1,1), input_data['v_phi'].reshape(-1,1),
-                input_data['v_z'].reshape(-1,1), input_data['z'].reshape(-1,1 ),
-                input_data['rho'].reshape(-1,1), input_data['phi'].reshape(-1,1 )))
+        if coord_system == 'cylindrical':
+            output_data = np.hstack((input_data['v_r'].reshape(-1,1), input_data['v_phi'].reshape(-1,1),
+                input_data['v_z'].reshape(-1,1), input_data['rho'].reshape(-1,1 ),
+                input_data['phi'].reshape(-1,1), input_data['z'].reshape(-1,1 )))
+        elif coord_system == 'cartesian':
+            output_data = np.hstack((input_data['v_x'].reshape(-1,1), input_data['v_y'].reshape(-1,1),
+                input_data['v_z'].reshape(-1,1), input_data['x'].reshape(-1,1 ),
+                input_data['y'].reshape(-1,1), input_data['z'].reshape(-1,1 )))
+        else:
+            raise Exception('coord_system should be cylindrical or cartesian')
     return output_data
 
 
