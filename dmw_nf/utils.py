@@ -154,8 +154,8 @@ def dict_to_tensor(input_data,tensor_order = None,coord_system='cylindrical'):
     else:
         if coord_system == 'cylindrical':
             output_data = np.hstack((input_data['v_r'].reshape(-1,1), input_data['v_phi'].reshape(-1,1),
-                input_data['v_z'].reshape(-1,1), input_data['rho'].reshape(-1,1 ),
-                input_data['phi'].reshape(-1,1), input_data['z'].reshape(-1,1 )))
+                input_data['v_z'].reshape(-1,1), input_data['z'].reshape(-1,1 ),
+                input_data['rho'].reshape(-1,1), input_data['phi'].reshape(-1,1 )))
         elif coord_system == 'cartesian':
             output_data = np.hstack((input_data['v_x'].reshape(-1,1), input_data['v_y'].reshape(-1,1),
                 input_data['v_z'].reshape(-1,1), input_data['x'].reshape(-1,1 ),
