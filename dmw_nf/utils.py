@@ -77,11 +77,15 @@ def sampling_function(data, error, N, seed=None):
     parallax_factor[sample[:,:,2].reshape(-1,1)<0] = 0
     return sample, parallax_factor.reshape(sample[:,:,2].shape)
 
-def sam_tran(data, error, N, seed=None,coord_system='cylindrical'):
+def sam_tran(data, error, N, seed=None,coord_system='cylindrical',positive_parallax_only=True, sampling_function=sampling_function):
     """
     Transforms sampled data into Galactocentric cylindrical coordinates or Cartesian coordinates.
     Returns the transformed data and parallax correction factors.
     """
+    if positive_parallax_only:
+        data = data[data[:,2] > 0]
+        error = error[data[:,2] > 0]
+    
     sample,parallax_factor = sampling_function(data,error,N,seed)
     
     mas_per_yr = u.mas/u.yr
@@ -90,7 +94,7 @@ def sam_tran(data, error, N, seed=None,coord_system='cylindrical'):
     stars_sample = SkyCoord(
         ra = sample[:,:,0] * u.degree,
         dec = sample[:,:,1] * u.degree,
-        distance = Distance(parallax = abs(sample[:,:,2])*u.mas), # ensure positive parallax
+        distance = Distance(parallax = max(sample[:,:,2],1e-6)*u.mas), # ensure positive parallax
         pm_ra_cosdec = sample[:,:,3] * mas_per_yr,
         pm_dec = sample[:,:,4] * mas_per_yr,
         radial_velocity = sample[:,:,5] *km_per_s

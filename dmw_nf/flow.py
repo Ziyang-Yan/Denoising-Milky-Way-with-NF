@@ -104,8 +104,8 @@ def pre_train_one_epoch(
     for _, (data_batch, error_batch) in enumerate(loader):
         optimizer.zero_grad()
         
-        # For pre-training, we typically don't add noise: use torch.zeros_like(...)
-        stars_data_cyl, _, _ = sam_tran(data_batch, torch.zeros_like(data_batch), 1,coord_system=coord_system)
+        # For pre-training, we typically don't add noise: use torch.zeros_like(...),ingore all negative parallaxes
+        stars_data_cyl, _, _ = sam_tran(data_batch, torch.zeros_like(data_batch), 1,coord_system=coord_system,positive_parallax_only=True)
         tensor_batch = scaler.transform(dict_to_tensor(stars_data_cyl, tensor_order,coord_system=coord_system))
         tensor_batch = torch.tensor(tensor_batch, dtype=torch.float32).to(device)
 
@@ -142,7 +142,7 @@ def pre_train_one_epoch_test(
 
     for _, data_batch in enumerate(loader):
         # Also use no noise here, consistent with pre-training approach
-        stars_data_cyl, _, _ = sam_tran(data_batch, torch.zeros_like(data_batch), 1,coord_system=coord_system)
+        stars_data_cyl, _, _ = sam_tran(data_batch, torch.zeros_like(data_batch), 1,coord_system=coord_system,positive_parallax_only=True)
         tensor_batch = scaler.transform(dict_to_tensor(stars_data_cyl, tensor_order,coord_system=coord_system))
         tensor_batch = torch.tensor(tensor_batch, dtype=torch.float32).to(device)
 
@@ -190,14 +190,14 @@ def train_one_epoch(
     for _, (data_batch, error_batch) in enumerate(loader):
         optimizer.zero_grad()
 
-        # Decide whether or not to use noise
+        # Decide whether or not to use noise, include all parallaxes
         if test_no_noise:
             stars_data_cyl, parallax_factor, _ = sam_tran(
-                data_batch, torch.zeros_like(error_batch), number_of_sam,coord_system=coord_system
+                data_batch, torch.zeros_like(error_batch), number_of_sam,coord_system=coord_system,positive_parallax_only=False
             )
         else:
             stars_data_cyl, parallax_factor, _ = sam_tran(
-                data_batch, error_batch, number_of_sam, coord_system=coord_system
+                data_batch, error_batch, number_of_sam, coord_system=coord_system,positive_parallax_only=False
             )
 
         # Evaluate selection function
@@ -257,8 +257,9 @@ def test_one_epoch(
     loss_epoch_test_val = 0.0
     n_stars_test = 0
 
+    # Only use positive parallaxes for testing
     for _, data_batch in enumerate(loader_test):
-        stars_data_cyl, _, _ = sam_tran(data_batch, np.zeros_like(data_batch), 1,coord_system=coord_system)
+        stars_data_cyl, _, _ = sam_tran(data_batch, np.zeros_like(data_batch), 1,coord_system=coord_system,positive_parallax_only=True)
         tensor_batch = scaler.transform(dict_to_tensor(stars_data_cyl, tensor_order,coord_system=coord_system))
         tensor_batch = torch.tensor(tensor_batch, dtype=torch.float32).to(device)
 
@@ -312,14 +313,14 @@ def train_flow(
     else:
         tensor_order = None
 
-
-    train_set_cyl, _, _ = sam_tran(train_set, np.zeros_like(train_set), 1,coord_system=coord_system)
+    # use positive parallax only for scaling
+    train_set_cyl, _, _ = sam_tran(train_set, np.zeros_like(train_set), 1,coord_system=coord_system,positive_parallax_only=True)
     training_tensor = dict_to_tensor(train_set_cyl, tensor_order,coord_system=coord_system)
     scaler = sklearn.preprocessing.StandardScaler()
     scaler.fit(training_tensor)
 
     if test_set is not None:
-        test_set_cyl, _, _ = sam_tran(test_set, np.zeros_like(test_set), 1,coord_system=coord_system)
+        test_set_cyl, _, _ = sam_tran(test_set, np.zeros_like(test_set), 1,coord_system=coord_system,positive_parallax_only=True)
         test_tensor = dict_to_tensor(test_set_cyl, tensor_order,coord_system=coord_system)
 
     # Compute product of the scaling factors
@@ -628,12 +629,13 @@ def load_and_gen_sample(model_path,data_path):
     else:
         tensor_order = None
 
-    train_cyl, _,train_object = sam_tran(training_data,np.zeros_like(training_data),1,coord_system=coord_system)
+    # use positive parallax only for generating samples
+    train_cyl, _,train_object = sam_tran(training_data,np.zeros_like(training_data),1,coord_system=coord_system,positive_parallax_only=True)
     train_cyl = dict_to_tensor(train_cyl,tensor_order,coord_system=coord_system)
 
 
-
-    mock_cyl, _,mock_object = sam_tran(mock_data,np.zeros_like(mock_data),1,coord_system=coord_system)
+    # use positive parallax only for generating mock data
+    mock_cyl, _,mock_object = sam_tran(mock_data,np.zeros_like(mock_data),1,coord_system=coord_system,positive_parallax_only=True)
     mock_cyl = dict_to_tensor(mock_cyl,tensor_order,coord_system=coord_system)
 
 
