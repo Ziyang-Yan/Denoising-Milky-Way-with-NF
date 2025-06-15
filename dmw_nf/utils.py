@@ -83,8 +83,9 @@ def sam_tran(data, error, N, seed=None,coord_system='cylindrical',positive_paral
     Returns the transformed data and parallax correction factors.
     """
     if positive_parallax_only:
-        data = data[data[:,2] > 0]
         error = error[data[:,2] > 0]
+        data = data[data[:,2] > 0]
+        
     
     sample,parallax_factor = sampling_function(data,error,N,seed)
     
