@@ -32,13 +32,17 @@ def select_stars(table, sector):
     if sector['flag'] == 'cartesian':
         con = ((np.sqrt((stars_data.cartesian.x - sector['center_x']*u.kpc)**2 + (stars_data.cartesian.y - sector['center_y']*u.kpc)**2) < sector['radius']*u.kpc)
             & (abs(stars_data.cartesian.z) < sector['z_limit']*u.kpc))
+    elif sector['flag'] == 'galcen_cartesian':
+        stars_data = stars_data.transform_to(coord.builtin_frames.Galactocentric())
+        con = ((np.sqrt((stars_data.cartesian.x - sector['center_x']*u.kpc)**2 + (stars_data.cartesian.y - sector['center_y']*u.kpc)**2) < sector['radius']*u.kpc)
+            & (abs(stars_data.cartesian.z) < sector['z_limit']*u.kpc))
     elif sector['flag'] == 'galcen':
         stars_data = stars_data.transform_to(coord.builtin_frames.Galactocentric())
         stars_data.representation_type = 'cylindrical'
         stars_data.phi.wrap_at('360d', inplace=True)
         con = (abs(stars_data.rho - sector['rho_0']*u.kpc) <  sector['d_rho']*u.kpc) & (abs(stars_data.phi - sector['phi_0']*u.deg) < sector['d_phi']*u.deg) & (abs(stars_data.cartesian.z) < sector['z_limit']*u.kpc)
     else:
-        raise Exception('flag should be cartesian or galcen')
+        raise Exception('flag should be cartesian ,galcen or galcen_cartesian')
 
     gaia_stars = gaia_stars[con]
 
